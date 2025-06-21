@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
 import os
+import sys
 
 from app.core.config import settings
 from app.db.base import Base, engine, get_db
@@ -24,51 +25,46 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
-# Set up CORS
+# Set up CORS - more permissive in Colab
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include API routers
-app.include_router(
-    auth.router,
-    prefix="/api/v1/auth",
-    tags=["auth"]
-)
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.include_router(
-    upload.router,
-    prefix="/api/v1/uploads",
-    tags=["uploads"]
-)
+# Include API routes
+app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
+app.include_router(upload.router, prefix="/api/v1", tags=["upload"])
+app.include_router(chunks.router, prefix="/api/v1", tags=["chunks"])
 
-app.include_router(
-    chunks.router,
-    prefix="/api/v1/chunks",
-    tags=["chunks"]
-)
-
-# Mount static files for serving audio chunks
-app.mount("/static", StaticFiles(directory=settings.BASE_DIR / "data"), name="static")
-
-# Create and mount Gradio UI
+# Mount Gradio app
 gradio_app = create_ui_app()
-app.mount("/gradio", gradio_app, name="gradio")
+app.mount("/gradio", gradio_app)
 
+# Health check
 @app.get("/api/health")
 async def health_check():
-    """Health check endpoint."""
-    return {"status": "ok"}
+    return {"status": "healthy", "environment": "colab" if 'COLAB_JUPYTER_TOKEN' in os.environ else "local"}
 
-# Root endpoint redirects to Gradio UI
+# Root endpoint
 @app.get("/")
 async def root():
-    return FileResponse("static/index.html")
+    return {
+        "message": "Whisper Fine-Tuning API",
+        "docs": "/api/docs",
+        "gradio_ui": "/gradio"
+    }
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+# Colab specific setup
+if 'COLAB_JUPYTER_TOKEN' in os.environ:
+    # Ensure data directories exist
+    os.makedirs("data/uploads", exist_ok=True)
+    os.makedirs("data/chunks", exist_ok=True)
+    os.makedirs("data/exports", exist_ok=True)
+    
+    print("Running in Google Colab environment")

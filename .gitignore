@@ -22,41 +22,36 @@ wheels/
 
 # Virtual Environment
 venv/
-env/
-.venv/
 ENV/
-
-# Environment variables
+env/
 .env
-
-# Database
-*.sqlite
-*.sqlite3
-
-# Logs
-logs/
-*.log
+.venv
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
-.DS_Store
 
-# Project specific
+# Data
 data/
-!data/.gitkeep
+*.db
+*.sqlite
+*.wav
+*.mp3
+*.flac
+*.m4a
 
-# Whisper models
-*.pt
-*.bin
+# Logs
+*.log
+logs/
 
-# MinIO data
-minio_data/
+# OS
+.DS_Store
+Thumbs.db
 
-# PostgreSQL data
-postgres_data/
+# Jupyter
+.ipynb_checkpoints
 
-# Cache
-.cache/
+# Colab
+*.ipynb
